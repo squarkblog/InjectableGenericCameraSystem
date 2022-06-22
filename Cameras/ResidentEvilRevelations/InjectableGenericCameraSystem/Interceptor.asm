@@ -29,86 +29,102 @@
 ; Game specific asm file to intercept execution flow to obtain addresses, prevent writes etc.
 ;---------------------------------------------------------------
 
+; In a 32-bit environment, functions are decorated; __cdecl calling convention adds a leading underscore (_), 
+; which is why everything here is prefixed with '_' - otherwise, the linker would complain
+; See also: https://stackoverflow.com/a/62754736, 
+;      which in turn quotes: https://docs.microsoft.com/en-us/cpp/build/reference/decorated-names?view=vs-2019#FormatC
+; If supporting different architectures, have different asm files for each architecture: x86, amd64
+
 ;---------------------------------------------------------------
 ; Public definitions so the linker knows which names are present in this file
-PUBLIC cameraAddressInterceptor
-PUBLIC fovAddressInterceptor
-PUBLIC runFramesAddressInterceptor
+PUBLIC _cameraAddressInterceptor
+PUBLIC _fovAddressInterceptor
+;PUBLIC runFramesAddressInterceptor
 ;---------------------------------------------------------------
 
 ;---------------------------------------------------------------
 ; Externs which are used and set by the system. Read / write these
 ; values in asm to communicate with the system
-EXTERN g_cameraStructAddress: qword
-EXTERN g_fovStructAddress: qword
-EXTERN g_runFramesStructAddress: qword
-EXTERN g_cameraEnabled: byte
+EXTERN _g_cameraStructAddress: dword
+EXTERN _g_fovStructAddress: dword
+EXTERN _g_runFramesStructAddress: dword
+EXTERN _g_cameraEnabled: byte
 ;---------------------------------------------------------------
 
 ;---------------------------------------------------------------
-; Own externs, defined in InterceptorHelper.cpp
-EXTERN _cameraStructInterceptionContinue: qword
-EXTERN _fovAddressInterceptionContinue: qword
-EXTERN _runFramesAddressInterceptionContinue: qword
+; Own externs, defined in InterceptorHelper.cpp (with an extra leading _ due to name mangling rules for x86)
+EXTERN __cameraStructInterceptionContinue: dword
+EXTERN __fovAddressInterceptionContinue: dword
+EXTERN __runFramesAddressInterceptionContinue: dword
 
 ; Scratch pad
 ;
 ;---------------------------------------------------------------
+.486                ; cpu mode
+.xmm                ; Enable xmm instructions
+.model flat
+
+; x64 doesn't have these; in x86, without the instructions above, the linker complains with the 
+; "invalid fixup" error. Found the solution here: https://stackoverflow.com/a/17517274
+
 .code
 
-cameraAddressInterceptor PROC
-;NewColossus_x64vk.exe+FE8EC2 - F3 0F10 45 C7         - movss xmm0,[rbp-39]
-;NewColossus_x64vk.exe+FE8EC7 - F3 0F10 4D CB         - movss xmm1,[rbp-35]
-;NewColossus_x64vk.exe+FE8ECC - F3 0F11 87 E8000000   - movss [rdi+000000E8],xmm0    ; WRITE X. Intercept here
-;NewColossus_x64vk.exe+FE8ED4 - F3 0F10 45 CF         - movss xmm0,[rbp-31]          ;
-;NewColossus_x64vk.exe+FE8ED9 - F3 0F11 87 F0000000   - movss [rdi+000000F0],xmm0    ; WRITE Z
-;NewColossus_x64vk.exe+FE8EE1 - 0F10 45 E7            - movups xmm0,[rbp-19]         ;
-;NewColossus_x64vk.exe+FE8EE5 - F3 0F11 8F EC000000   - movss [rdi+000000EC],xmm1    ; WRITE Y
-;NewColossus_x64vk.exe+FE8EED - 0F11 87 F4000000      - movups [rdi+000000F4],xmm0   ; WRITE Matrix values 0-3
-;NewColossus_x64vk.exe+FE8EF4 - 0F10 45 F7            - movups xmm0,[rbp-09]         ;
-;NewColossus_x64vk.exe+FE8EF8 - 0F11 87 04010000      - movups [rdi+00000104],xmm0   ; WRITE Matrix values 3-7
-;NewColossus_x64vk.exe+FE8EFF - F3 0F10 45 07         - movss xmm0,[rbp+07]          ;
-;NewColossus_x64vk.exe+FE8F04 - F3 0F11 87 14010000   - movss [rdi+00000114],xmm0    ; WRITE Matrix value 8
-;NewColossus_x64vk.exe+FE8F0C - 48 8B CF              - mov rcx,rdi                  ; Continue here
-	mov [g_cameraStructAddress], rdi		; store the camera struct in the variable
-	cmp byte ptr [g_cameraEnabled], 1		; if our camera is enabled, skip writes
+_cameraAddressInterceptor PROC
+;rerev.exe+7E4EC - F3 0F11 43 08         - movss [ebx+08],xmm0      << updates cam postion z          <========= INTERCEPT HERE
+;rerev.exe+7E4F1 - 0F57 C0               - xorps xmm0,xmm0
+;rerev.exe+7E4F4 - F3 0F11 43 0C         - movss [ebx+0C],xmm0      << camera position w (unused)? just padding?
+;rerev.exe+7E4F9 - F3 0F58 D4            - addss xmm2,xmm4
+;rerev.exe+7E4FD - F3 0F11 53 04         - movss [ebx+04],xmm2      << updates cam position y 
+;rerev.exe+7E502 - F3 0F58 CB            - addss xmm1,xmm3
+;rerev.exe+7E506 - F3 0F11 0B            - movss [ebx],xmm1         << updates cam position x              <---- END INTERCEPT
+;rerev.exe+7E50A - F3 0F10 B6 10010000   - movss xmm6,[esi+00000110]                              <============= CONTINUE HERE
+	mov [_g_cameraStructAddress], ebx		; store the camera struct in the variable (camera x at offset 0x00)
+	cmp byte ptr [_g_cameraEnabled], 1		; if our camera is enabled, skip writes
 	je exit
 originalCode:
-	movss dword ptr [rdi+000000E8h],xmm0			; original code from the game, intercepted
-	movss xmm0,dword ptr [rbp-31h]
-	movss dword ptr [rdi+000000F0h],xmm0
-	movups xmm0,xmmword ptr [rbp-19h]
-	movss dword ptr [rdi+000000ECh],xmm1
-	movups xmmword ptr [rdi+000000F4h],xmm0
-	movups xmm0,xmmword ptr [rbp-9h]
-	movups xmmword ptr [rdi+00000104h],xmm0
-	movss xmm0,dword ptr [rbp+7h]
-	movss dword ptr [rdi+00000114h],xmm0
+	movss dword ptr [ebx+08h],xmm0 			        ; write to camera position.z    ; original code, intercepted
+	xorps xmm0,xmm0
+	movss dword ptr [ebx+0Ch],xmm0
+	addss xmm2,xmm4
+	movss dword ptr [ebx+04h],xmm2                   ; write to camera position.y
+	addss xmm1,xmm3
+    movss dword ptr [ebx],xmm1                      ; write to camera position.x
 exit:
-	jmp qword ptr [_cameraStructInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
-cameraAddressInterceptor ENDP
+	jmp dword ptr [__cameraStructInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
+_cameraAddressInterceptor ENDP
 
-fovAddressInterceptor PROC
-;NewColossus_x64vk.exe+FE8C58 - 81 25 1ED4FA01 FFFFFBFF - and [NewColossus_x64vk.exe+2F96080],FFFBFFFF
-;NewColossus_x64vk.exe+FE8C62 - 48 8B 06              - mov rax,[rsi]					; Intercept here
-;NewColossus_x64vk.exe+FE8C65 - 48 8D 8B C04F0000     - lea rcx,[rbx+00004FC0]			; Load FoV Address
-;NewColossus_x64vk.exe+FE8C6C - 48 8D 55 67           - lea rdx,[rbp+67]
-;NewColossus_x64vk.exe+FE8C70 - 48 89 45 67           - mov [rbp+67],rax	
-;NewColossus_x64vk.exe+FE8C74 - E8 37C596FF           - call NewColossus_x64vk.exe+9551B0		; call FoV function; Continue here
-;NewColossus_x64vk.exe+FE8C79 - 65 48 8B 04 25 58000000  - mov rax,gs:[00000058]
-;NewColossus_x64vk.exe+FE8C82 - 48 8D 8F 98000000     - lea rcx,[rdi+00000098]
-;NewColossus_x64vk.exe+FE8C89 - 0F57 E4               - xorps xmm4,xmm4
+_fovAddressInterceptor PROC
+; The original function seems to compute some kind of fov/camera interpolation
+; NOTE 1: this is some sort of a master value or a "target" value -- looks like the value stored there is read in in the next cycle
+; NOTE 2: this is what actually affects the screen, leave this in -- looks like "current" value
+;-------------------------------------------------------------------------------------------------------------------------------------
+;rerev.exe+7E6DE - F3 0F11 46 10         - movss [esi+10],xmm0            << FoV write, ===== INTERCEPT HERE  -- see NOTE 1 above
+;rerev.exe+7E6E3 - F3 0F11 86 C4000000   - movss [esi+000000C4],xmm0              << writes to a copy of FoV -- see NOTE 2 above
+;rerev.exe+7E6EB - D9 03                 - fld dword ptr [ebx]
+;rerev.exe+7E6ED - D9 18                 - fstp dword ptr [eax]
+;rerev.exe+7E6EF - D9 43 04              - fld dword ptr [ebx+04]
+;rerev.exe+7E6F2 - D9 58 04              - fstp dword ptr [eax+04]        <<----------------- finsih here
+;rerev.exe+7E6F5 - D9 43 08              - fld dword ptr [ebx+08]         <<================= CONTINUE HERE
+;rerev.exe+7E6F8 - F3 0F11 48 0C         - movss [eax+0C],xmm1
+;rerev.exe+7E6FD - D9 58 08              - fstp dword ptr [eax+08]
+;rerev.exe+7E700 - 8B 44 24 14           - mov eax,[esp+14]
+	mov [_g_fovStructAddress],esi            ; Store the address in the variable (+ FoV is at offset 0x10)
+	cmp byte ptr [_g_cameraEnabled], 1		; if our camera is enabled, skip writes
+	je exit
 originalCode:
-	mov rax,[rsi]			
-	lea rcx,[rbx+00004FC0h]    ; Read the FoV address in rcx
-	lea rdx,[rbp+67h]
-	mov [rbp+67h],rax
+    movss dword ptr [esi+10h],xmm0 
+    ; movss dword ptr [esi+000000C4h],xmm0  ; moved this down
+    fld dword ptr [ebx]
+    fstp dword ptr [eax]
+    fld dword ptr [ebx+04h]
+    fstp dword ptr [eax+04h]
 exit:
-	mov [g_fovStructAddress], rcx    ; Store the address in the variable
-	jmp qword ptr [_fovAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
-fovAddressInterceptor ENDP
+    movss dword ptr [esi+000000C4h],xmm0
+	jmp dword ptr [__fovAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
+_fovAddressInterceptor ENDP
 
-runFramesAddressInterceptor PROC
+;TODO: leftover from Wolfenstein 2 -- see what's needed (not used ATM)
+;runFramesAddressInterceptor PROC
 ;NewColossus_x64vk.exe+11B5343 - 48 8B C8              - mov rcx,rax
 ;NewColossus_x64vk.exe+11B5346 - 48 8B 00              - mov rax,[rax]
 ;NewColossus_x64vk.exe+11B5349 - 48 8B 90 B8000000     - mov rdx,[rax+000000B8]
@@ -124,19 +140,19 @@ runFramesAddressInterceptor PROC
 ;NewColossus_x64vk.exe+11B5370 - 7E 07                 - jle NewColossus_x64vk.exe+11B5379
 ;NewColossus_x64vk.exe+11B5372 - FF CA                 - dec edx
 ;NewColossus_x64vk.exe+11B5374 - E8 07AC0700           - call NewColossus_x64vk.exe+122FF80
-originalCode:
-	cmp rax,r8							
-	jne c1
-	lea rax,[rcx+000001F0h]
-	jmp c2
-c1:
-	call rdx
-c2:
-	mov rcx,[rax+48h]
-	mov edx,[rcx+30h]
-exit:
-	mov [g_runFramesStructAddress], rcx    ; Store the address in the variable
-	jmp qword ptr [_runFramesAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
-runFramesAddressInterceptor ENDP
+;originalCode:
+;	cmp rax,r8							
+;	jne c1
+;	lea rax,[rcx+000001F0h]
+;	jmp c2
+;c1:
+;	call rdx
+;c2:
+;	mov rcx,[rax+48h]
+;	mov edx,[rcx+30h]
+;exit:
+;	mov [_g_runFramesStructAddress], rcx    ; Store the address in the variable
+;	jmp dword ptr [__runFramesAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
+;runFramesAddressInterceptor ENDP
 
 END

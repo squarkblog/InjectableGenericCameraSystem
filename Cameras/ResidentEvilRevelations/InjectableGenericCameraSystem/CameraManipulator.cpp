@@ -36,7 +36,7 @@ using namespace std;
 extern "C" {
 	// global variables which are accessed in Interceptor.asm and therefore need to be defined as 'extern "C"'
 	LPBYTE g_cameraStructAddress = nullptr;
-	LPBYTE g_fovStructAddress = nullptr;
+    LPBYTE g_fovStructAddress = nullptr;
 	LPBYTE g_runFramesStructAddress = nullptr;
 }
 
@@ -98,9 +98,14 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	XMFLOAT3 getCurrentCameraCoords()
 	{
-		float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
+        float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_POS_X_OFFSET);
+        XMFLOAT3 currentCoords = XMFLOAT3(coordsInMemory);
+        return currentCoords;
+
+        // TODO - implement properly. Original code:
+		/*float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
 		XMFLOAT3 currentCoords = XMFLOAT3(coordsInMemory);
-		return currentCoords;
+		return currentCoords;*/
 	}
 
 
@@ -108,6 +113,9 @@ namespace IGCS::GameSpecific::CameraManipulator
 	// newCoords are the new coordinates for the camera in worldspace.
 	void writeNewCameraValuesToGameData(XMVECTOR newLookQuaternion, XMFLOAT3 newCoords)
 	{
+        // TODO: implement to work with the RE:Rev camera structures; untill then, just do nothing
+        return; 
+
 		XMFLOAT4 qAsFloat4;
 		XMStoreFloat4(&qAsFloat4, newLookQuaternion);
 
@@ -169,6 +177,11 @@ namespace IGCS::GameSpecific::CameraManipulator
 		{
 			return;
 		}
+
+#ifdef _DEBUG
+        cout << "FoV Struct address: " << hex << (void*)g_fovStructAddress << endl;
+#endif
+
 		float* fovInMemory = reinterpret_cast<float*>(g_fovStructAddress + FOV_IN_FOV_STRUCT_OFFSET);
 		*fovInMemory += amount;
 	}
@@ -176,6 +189,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	void restoreOriginalCameraValues()
 	{
+        /*
 		if (nullptr == g_cameraStructAddress)
 		{
 			return;
@@ -184,6 +198,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 		float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
 		memcpy(matrixInMemory, _originalRotationMatrixData, 9 * sizeof(float));
 		memcpy(coordsInMemory, _originalCoordsData, 3 * sizeof(float));
+        */
 		if (nullptr != g_fovStructAddress)
 		{
 			float* floatInMemory = reinterpret_cast<float*>(g_fovStructAddress + FOV_IN_FOV_STRUCT_OFFSET);
@@ -194,6 +209,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	void cacheOriginalCameraValues()
 	{
+        /*
 		if (nullptr == g_cameraStructAddress)
 		{
 			return;
@@ -202,6 +218,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 		float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
 		memcpy(_originalRotationMatrixData, matrixInMemory, 9 * sizeof(float));
 		memcpy(_originalCoordsData, coordsInMemory, 3 * sizeof(float));
+        */
 		if (nullptr != g_fovStructAddress)
 		{
 			float* floatInMemory = reinterpret_cast<float*>(g_fovStructAddress + FOV_IN_FOV_STRUCT_OFFSET);

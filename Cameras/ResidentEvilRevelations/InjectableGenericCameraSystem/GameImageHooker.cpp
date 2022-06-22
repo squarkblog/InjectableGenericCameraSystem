@@ -40,7 +40,7 @@ namespace IGCS::GameImageHooker
 		DWORD startOffset = hookData->customOffset();
 
 		LPBYTE startOfHookAddress = baseAddress + startOffset;
-		*interceptionContinue = baseAddress + continueOffset;
+		*interceptionContinue = startOfHookAddress + continueOffset;
 #ifdef _WIN64
 		// x64
 		BYTE instruction[14];	// 6 bytes for the jmp qword ptr [0] and 8 bytes for the real address which is stored right after the 6 bytes of jmp qword ptr [0] bytes 
