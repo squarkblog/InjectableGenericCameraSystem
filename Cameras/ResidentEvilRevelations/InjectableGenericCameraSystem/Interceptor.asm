@@ -113,13 +113,13 @@ _fovAddressInterceptor PROC
 	je exit
 originalCode:
     movss dword ptr [esi+10h],xmm0 
-    ; movss dword ptr [esi+000000C4h],xmm0  ; moved this down
+    ; movss dword ptr [esi+000000C4h],xmm0     ; moved this down to--->(A)
     fld dword ptr [ebx]
     fstp dword ptr [eax]
     fld dword ptr [ebx+04h]
     fstp dword ptr [eax+04h]
 exit:
-    movss dword ptr [esi+000000C4h],xmm0
+    movss dword ptr [esi+000000C4h],xmm0      ; moved here from <---(A)
 	jmp dword ptr [__fovAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
 _fovAddressInterceptor ENDP
 
