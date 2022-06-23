@@ -54,6 +54,8 @@ EXTERN _g_cameraEnabled: byte
 ;---------------------------------------------------------------
 ; Own externs, defined in InterceptorHelper.cpp (with an extra leading _ due to name mangling rules for x86)
 EXTERN __cameraStructInterceptionContinue: dword
+EXTERN __cameraTargetInterceptionContinue: dword
+EXTERN __cameraUpVectorInterceptionContinue: dword
 EXTERN __fovAddressInterceptionContinue: dword
 EXTERN __runFramesAddressInterceptionContinue: dword
 
@@ -93,6 +95,71 @@ exit:
 	jmp dword ptr [__cameraStructInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
 _cameraAddressInterceptor ENDP
 
+_cameraTargetInterceptor PROC
+;rerev.exe+7E548 - F3 0F11 07            - movss [edi],xmm0       << target x, <============= INTERCEPT HERE
+;rerev.exe+7E54C - 0F57 C0               - xorps xmm0,xmm0
+;rerev.exe+7E54F - F3 0F11 47 0C         - movss [edi+0C],xmm0    << just writes a zero for w (or padding)  
+;rerev.exe+7E554 - F3 0F59 CE            - mulss xmm1,xmm6
+;rerev.exe+7E558 - F3 0F58 CC            - addss xmm1,xmm4
+;rerev.exe+7E55C - F3 0F11 4F 04         - movss [edi+04],xmm1    << target y
+;rerev.exe+7E561 - F3 0F59 D6            - mulss xmm2,xmm6
+;rerev.exe+7E565 - F3 0F58 D5            - addss xmm2,xmm5
+;rerev.exe+7E569 - F3 0F11 57 08         - movss [edi+08],xmm2    << target z  <============= END INTERCEPT
+;rerev.exe+7E56E - F3 0F10 19            - movss xmm3,[ecx]                    <============= CONTINUE HERE
+;rerev.exe+7E572 - F3 0F5C 1A            - subss xmm3,[edx]
+;rerev.exe+7E576 - F3 0F10 49 04         - movss xmm1,[ecx+04]
+    cmp byte ptr [_g_cameraEnabled], 1		; if our camera is enabled, skip writes
+    je exit
+originalCode:
+    movss dword ptr [edi],xmm0                      ; write to camera target x
+    xorps xmm0,xmm0
+    movss dword ptr [edi+0Ch],xmm0
+    mulss xmm1,xmm6
+    addss xmm1,xmm4
+    movss dword ptr [edi+04h],xmm1                  ; write to camera target y
+    mulss xmm2,xmm6
+    addss xmm2,xmm5
+    movss dword ptr [edi+08h],xmm2                  ; write to camera target z
+exit:
+	jmp dword ptr [__cameraTargetInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
+_cameraTargetInterceptor ENDP
+
+_cameraUpVectorInterceptor PROC
+;rerev.exe+7E67F - 84 C0                 - test al,al                          <<========== INTERCEPT HERE
+;rerev.exe+7E681 - 74 2E                 - je rerev.exe+7E6B1                         --------- local jump to --------->(A)
+;rerev.exe+7E683 - F3 0F10 84 24 90000000  - movss xmm0,[esp+00000090]
+;rerev.exe+7E68C - F3 0F11 01            - movss [ecx],xmm0                       << write up vec x 
+;rerev.exe+7E690 - F3 0F10 84 24 94000000  - movss xmm0,[esp+00000094]
+;rerev.exe+7E699 - F3 0F11 41 04         - movss [ecx+04],xmm0                    << write up vec y
+;rerev.exe+7E69E - F3 0F10 84 24 98000000  - movss xmm0,[esp+00000098]
+;rerev.exe+7E6A7 - F3 0F11 41 08         - movss [ecx+08],xmm0                    << write up vec z
+;rerev.exe+7E6AC - F3 0F11 49 0C         - movss [ecx+0C],xmm1
+;rerev.exe+7E6B1 - F3 0F10 96 10010000   - movss xmm2,[esi+00000110]                    <-------------------------------(A)
+;rerev.exe+7E6B9 - F3 0F10 5E 10         - movss xmm3,[esi+10]                 <<========== END INTERCEPT
+;rerev.exe+7E6BE - F3 0F10 05 D091FE00   - movss xmm0,[rerev.exe+BE91D0]       <<========== CONTINUE HERE
+;rerev.exe+7E6C6 - 8B 44 24 10           - mov eax,[esp+10]
+;rerev.exe+7E6CA - F3 0F5C C2            - subss xmm0,xmm2
+    cmp byte ptr [_g_cameraEnabled], 1		; if our camera is enabled, skip writes
+    je exit
+originalCode:
+    test al,al
+    je localJump
+    movss xmm0,dword ptr [esp+00000090h]              ; write up vec x
+    movss dword ptr [ecx],xmm0
+    movss xmm0,dword ptr [esp+00000094h]
+    movss dword ptr [ecx+04h],xmm0                    ; write up vec y
+    movss xmm0,dword ptr [esp+00000098h]
+    movss dword ptr [ecx+08h],xmm0                    ; write up vec z
+    movss dword ptr [ecx+0Ch],xmm1                    ; w or padding - ignored
+localJump:
+    ;movss xmm2,dword ptr [esi+00000110h]
+    ;movss xmm3,dword ptr [esi+10h]
+exit:
+    movss xmm2,dword ptr [esi+00000110h]
+    movss xmm3,dword ptr [esi+10h]
+	jmp dword ptr [__cameraUpVectorInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
+_cameraUpVectorInterceptor ENDP
+
 _fovAddressInterceptor PROC
 ; The original function seems to compute some kind of fov/camera interpolation
 ; NOTE 1: this is some sort of a master value or a "target" value -- looks like the value stored there is read in in the next cycle
@@ -110,16 +177,16 @@ _fovAddressInterceptor PROC
 ;rerev.exe+7E700 - 8B 44 24 14           - mov eax,[esp+14]
 	mov [_g_fovStructAddress],esi            ; Store the address in the variable (+ FoV is at offset 0x10)
 	cmp byte ptr [_g_cameraEnabled], 1		; if our camera is enabled, skip writes
-	je exit
+	je continue
 originalCode:
-    movss dword ptr [esi+10h],xmm0 
-    ; movss dword ptr [esi+000000C4h],xmm0     ; moved this down to--->(A)
-    fld dword ptr [ebx]
-    fstp dword ptr [eax]
-    fld dword ptr [ebx+04h]
+    movss dword ptr [esi+10h],xmm0            ; writes to "master" FoV (NOTE 1)
+continue:
+    movss dword ptr [esi+000000C4h],xmm0      ; writes to "current" FoV copy (NOTE 2)
+    fld dword ptr [ebx]                       ; these are actually writing a copy of the camera location x and y 
+    fstp dword ptr [eax]                      ;     (looks like the same thing as in NOTE 2)
+    fld dword ptr [ebx+04h]                   ;     this needs to be executed for the camera to work properly
     fstp dword ptr [eax+04h]
 exit:
-    movss dword ptr [esi+000000C4h],xmm0      ; moved here from <---(A)
 	jmp dword ptr [__fovAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
 _fovAddressInterceptor ENDP
 

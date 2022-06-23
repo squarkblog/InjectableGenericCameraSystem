@@ -43,10 +43,10 @@ namespace IGCS::GameSpecific
     #define FASTER_MULTIPLIER                           6.0f
     #define SLOWER_MULTIPLIER                           0.04f
     #define MOUSE_SPEED_CORRECTION                      0.2f    // to correct for the mouse-deltas related to normal rotation.
-    #define DEFAULT_MOVEMENT_SPEED                      0.015f
-    #define DEFAULT_ROTATION_SPEED                      0.015f
+    #define DEFAULT_MOVEMENT_SPEED                      1.8f
+    #define DEFAULT_ROTATION_SPEED                      0.03f
     #define DEFAULT_FOV_SPEED                           0.1f
-    #define DEFAULT_Z_MOVEMENT_MULTIPLIER               0.5f
+    #define DEFAULT_UP_MOVEMENT_MULTIPLIER              0.5f
     #define DEFAULT_SKIP_FRAMES_COUNT                   5
     // End Mandatory constants
 
@@ -55,6 +55,8 @@ namespace IGCS::GameSpecific
     #define FOV_IN_FOV_STRUCT_OFFSET                    0x10   // represented by a single float, half angle in deg
 
     #define CAMERA_ADDRESS_INTERCEPT_KEY                "AOB_CAMERA_ADDRESS_INTERCEPT"
+    #define CAMERA_TARGET_ADDRESS_INTERCEPT_KEY         "AOB_CAMERA_TARGET_ADDRESS_INTERCEPT_KEY"
+    #define CAMERA_UPVEC_ADDRESS_INTERCEPT_KEY          "AOB_CAMERA_UPVEC_ADDRESS_INTERCEPT_KEY"
 
     // Camera in RE:Rev is represented as: 
     //    { 
@@ -66,9 +68,9 @@ namespace IGCS::GameSpecific
     // (which is why I'm not sure that the up vector is strictly normalized - but it has length near 1). 
     // A number of methods write to these - some are doing constant interpolation, some are only triggered when aiming, 
     // or during cutscenes, door animations, etc...
-    #define CAMERA_STRUCT_POS_X_OFFSET                  0x00    
-    #define CAMERA_STRUCT_UP_X_OFFSET                   0x10    
-    #define CAMERA_STRUCT_TARGET_X_OFFSET               0x20    
+    #define CAMERA_STRUCT_POS_X_OFFSET                  0x00
+    #define CAMERA_STRUCT_UP_X_OFFSET                   0x10
+    #define CAMERA_STRUCT_TARGET_X_OFFSET               0x20
 
     // TODO: leftower from Wolfenstain - not yet sure how to do these in RE:Rev
     #define SHOWHUD_CVAR_ADDRESS_INTERCEPT_KEY          "AOB_SHOWHUD_ADDRESS_INTERCEPT"

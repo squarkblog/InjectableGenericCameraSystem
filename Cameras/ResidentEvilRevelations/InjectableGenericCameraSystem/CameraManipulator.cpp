@@ -101,46 +101,64 @@ namespace IGCS::GameSpecific::CameraManipulator
         float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_POS_X_OFFSET);
         XMFLOAT3 currentCoords = XMFLOAT3(coordsInMemory);
         return currentCoords;
-
-        // TODO - implement properly. Original code:
-		/*float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
-		XMFLOAT3 currentCoords = XMFLOAT3(coordsInMemory);
-		return currentCoords;*/
 	}
 
 
-	// newLookQuaternion: newly calculated quaternion of camera view space. Used here to construct a 4x4 matrix as the game uses a matrix instead of a quaternion
+	// newLookQuaternion: newly calculated quaternion of camera view space. Used here to construct a game-specific camera structure (posVec, upVec, tagetLocation)
 	// newCoords are the new coordinates for the camera in worldspace.
 	void writeNewCameraValuesToGameData(XMVECTOR newLookQuaternion, XMFLOAT3 newCoords)
 	{
-        // TODO: implement to work with the RE:Rev camera structures; untill then, just do nothing
-        return; 
+        XMFLOAT4 qAsFloat4;
+        XMStoreFloat4(&qAsFloat4, newLookQuaternion);
 
-		XMFLOAT4 qAsFloat4;
-		XMStoreFloat4(&qAsFloat4, newLookQuaternion);
+        XMMATRIX rotationMatrixPacked = XMMatrixRotationQuaternion(newLookQuaternion);
+        XMFLOAT4X4 rotationMatrix;
+        XMStoreFloat4x4(&rotationMatrix, rotationMatrixPacked);
 
-		// game uses a 3x3 matrix for look data. We have to calculate a rotation matrix from our quaternion and store the upper 3x3 matrix (_11-_33) in memory.
-		XMMATRIX rotationMatrixPacked = XMMatrixRotationQuaternion(newLookQuaternion);
-		XMFLOAT4X4 rotationMatrix;
-		XMStoreFloat4x4(&rotationMatrix, rotationMatrixPacked);
+        // The columns of the rotation (view) matrix are direction vectors in space; in relation to the camera, these are:
+        // column1: right       -- local x-axis
+        // column2: up          -- local y-axis 
+        // column3: back        -- local z-axis  (out of the screen)
 
-		// 3x3 rotation part of matrix
-		float* matrixInMemory = reinterpret_cast<float*>(g_cameraStructAddress + ROTATION_MATRIX_IN_CAMERA_STRUCT_OFFSET);
-		matrixInMemory[0] = rotationMatrix._11;
-		matrixInMemory[1] = rotationMatrix._12;
-		matrixInMemory[2] = rotationMatrix._13;
-		matrixInMemory[3] = rotationMatrix._21;
-		matrixInMemory[4] = rotationMatrix._22;
-		matrixInMemory[5] = rotationMatrix._23;
-		matrixInMemory[6] = rotationMatrix._31;
-		matrixInMemory[7] = rotationMatrix._32;
-		matrixInMemory[8] = rotationMatrix._33;
+        XMFLOAT3 up(
+            rotationMatrix._12,
+            rotationMatrix._22,
+            rotationMatrix._32
+        );
 
-		// Coords
-		float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
-		coordsInMemory[0] = newCoords.x;
-		coordsInMemory[1] = newCoords.y;
-		coordsInMemory[2] = newCoords.z;
+        XMFLOAT3 forward(
+            -rotationMatrix._13, 
+            -rotationMatrix._23, 
+            -rotationMatrix._33
+        );
+
+        if (CONTROLLER_Y_INVERT) {
+
+            up.x = rotationMatrix._21;
+            up.y = rotationMatrix._22;
+            up.z = rotationMatrix._23;
+
+            forward.x = -rotationMatrix._31;
+            forward.y = -rotationMatrix._32;
+            forward.z = -rotationMatrix._33;
+        }
+
+        // Update the values in memory
+        float* cameraLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_POS_X_OFFSET);
+        cameraLocation[0] = newCoords.x;
+        cameraLocation[1] = newCoords.y;
+        cameraLocation[2] = newCoords.z;        
+
+        // to actually translate the camera, the look-at target object needs to be translated as well
+        float* cameraTargetLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_TARGET_X_OFFSET);
+        cameraTargetLocation[0] = newCoords.x + 100 * forward.x;
+        cameraTargetLocation[1] = newCoords.y + 100 * forward.y;
+        cameraTargetLocation[2] = newCoords.z + 100 * forward.z;
+
+        float* cameraUpVecLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_UP_X_OFFSET);
+        cameraUpVecLocation[0] = up.x;
+        cameraUpVecLocation[1] = up.y;
+        cameraUpVecLocation[2] = up.z;        
 	}
 
 
@@ -178,10 +196,6 @@ namespace IGCS::GameSpecific::CameraManipulator
 			return;
 		}
 
-#ifdef _DEBUG
-        cout << "FoV Struct address: " << hex << (void*)g_fovStructAddress << endl;
-#endif
-
 		float* fovInMemory = reinterpret_cast<float*>(g_fovStructAddress + FOV_IN_FOV_STRUCT_OFFSET);
 		*fovInMemory += amount;
 	}
@@ -189,6 +203,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	void restoreOriginalCameraValues()
 	{
+        // TODO: restore camera
         /*
 		if (nullptr == g_cameraStructAddress)
 		{
@@ -209,6 +224,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	void cacheOriginalCameraValues()
 	{
+        // TODO: cache vals to restore camera
         /*
 		if (nullptr == g_cameraStructAddress)
 		{
