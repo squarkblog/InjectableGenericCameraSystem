@@ -67,6 +67,9 @@
     <ClInclude Include="AOBBlock.h">
       <Filter>Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="TimerManipulator.h">
+      <Filter>Game Specific</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InterceptorHelper.cpp">
@@ -110,6 +113,9 @@
     </ClCompile>
     <ClCompile Include="AOBBlock.cpp">
       <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="TimerManipulator.cpp">
+      <Filter>Game Specific</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

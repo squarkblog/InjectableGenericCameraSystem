@@ -27,8 +27,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include "CameraManipulator.h"
+#include "TimerManipulator.h"
 #include "GameConstants.h"
 #include "Console.h"
+#include "Camera.h"
 
 using namespace DirectX;
 using namespace std;
@@ -43,7 +45,9 @@ extern "C" {
 namespace IGCS::GameSpecific::CameraManipulator
 {
 	static float _originalRotationMatrixData[9];
-	static float _originalCoordsData[3];
+	static float _originalCameraCoordsData[3];
+    static float _originalUpVectorData[3];
+    static float _originalCameraTargetCoordsData[3];
 	static float _originalFoV;
 	static bool _timeHasBeenStopped = false;
 	static LPBYTE _showHudAddress = nullptr;
@@ -65,11 +69,12 @@ namespace IGCS::GameSpecific::CameraManipulator
 	// newValue is the amount of frames to skip ahead when g_stopTime (via setStopTimeValue) is set to a value > 0
 	void setRunFramesValue(BYTE newValue)
 	{
-		if (nullptr == g_runFramesStructAddress)
-		{
-			return;
-		}
-		*(g_runFramesStructAddress + RUNFRAMES_CVAR_IN_STRUCT_OFFSET) = newValue;
+        if (GameSpecific::TimerManipulator::TimerHooked())
+        {
+            GameSpecific::TimerManipulator::SlowAdvanceToggle();
+        }
+
+		// TODO: rename/repurpose this function and associated meassages as "toggle slow-mo"
 	}
 
 
@@ -77,11 +82,13 @@ namespace IGCS::GameSpecific::CameraManipulator
 	// I opted for 1, as it leaves a bit freedom for what to do with the player after pausing the game. 
 	void setStopTimeValue(BYTE newValue)
 	{
-		if (nullptr == _stopTimeAddress)
-		{
-			return;
-		}
-		*_stopTimeAddress = newValue;
+        if (GameSpecific::TimerManipulator::TimerHooked()) 
+        {
+            if (newValue == 1)
+                GameSpecific::TimerManipulator::FreezeTime();
+            else
+                GameSpecific::TimerManipulator::RestoreNormalTimeFlow();
+        }
 	}
 
 
@@ -203,17 +210,20 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	void restoreOriginalCameraValues()
 	{
-        // TODO: restore camera
-        /*
-		if (nullptr == g_cameraStructAddress)
-		{
-			return;
-		}
-		float* matrixInMemory = reinterpret_cast<float*>(g_cameraStructAddress + ROTATION_MATRIX_IN_CAMERA_STRUCT_OFFSET);
-		float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
-		memcpy(matrixInMemory, _originalRotationMatrixData, 9 * sizeof(float));
-		memcpy(coordsInMemory, _originalCoordsData, 3 * sizeof(float));
-        */
+        if (nullptr == g_cameraStructAddress)
+        {
+            return;
+        }
+
+        float* cameraLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_POS_X_OFFSET);
+        memcpy(cameraLocation, _originalCameraCoordsData, 3 * sizeof(float));
+
+        float* cameraTargetLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_TARGET_X_OFFSET);
+        memcpy(cameraTargetLocation, _originalCameraTargetCoordsData, 3 * sizeof(float));
+
+        float* cameraUpVecLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_UP_X_OFFSET);
+        memcpy(cameraUpVecLocation, _originalUpVectorData, 3 * sizeof(float));
+
 		if (nullptr != g_fovStructAddress)
 		{
 			float* floatInMemory = reinterpret_cast<float*>(g_fovStructAddress + FOV_IN_FOV_STRUCT_OFFSET);
@@ -224,21 +234,42 @@ namespace IGCS::GameSpecific::CameraManipulator
 
 	void cacheOriginalCameraValues()
 	{
-        // TODO: cache vals to restore camera
-        /*
-		if (nullptr == g_cameraStructAddress)
-		{
-			return;
-		}
-		float* matrixInMemory = reinterpret_cast<float*>(g_cameraStructAddress + ROTATION_MATRIX_IN_CAMERA_STRUCT_OFFSET);
-		float* coordsInMemory = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_COORDS_IN_CAMERA_STRUCT_OFFSET);
-		memcpy(_originalRotationMatrixData, matrixInMemory, 9 * sizeof(float));
-		memcpy(_originalCoordsData, coordsInMemory, 3 * sizeof(float));
-        */
+        if (nullptr == g_cameraStructAddress) 
+        {
+            return;
+        }
+
+        float* cameraLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_POS_X_OFFSET);
+        memcpy(_originalCameraCoordsData, cameraLocation, 3 * sizeof(float));
+
+        float* cameraTargetLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_TARGET_X_OFFSET);
+        memcpy(_originalCameraTargetCoordsData, cameraTargetLocation, 3 * sizeof(float));
+
+        float* cameraUpVecLocation = reinterpret_cast<float*>(g_cameraStructAddress + CAMERA_STRUCT_UP_X_OFFSET);
+        memcpy(_originalUpVectorData, cameraUpVecLocation, 3 * sizeof(float));
+        
 		if (nullptr != g_fovStructAddress)
 		{
 			float* floatInMemory = reinterpret_cast<float*>(g_fovStructAddress + FOV_IN_FOV_STRUCT_OFFSET);
 			_originalFoV = *floatInMemory;
 		}
 	}
+
+    void initCamera(Camera& camera)
+    {
+        if (nullptr == g_cameraStructAddress)
+        {
+            return;
+        }
+
+        camera.resetAngles();
+
+        // Preserve in-game camera orientation, but offset a little to indicate that free cam is enabled
+        DirectX::XMFLOAT3 loc(_originalCameraCoordsData[0], _originalCameraCoordsData[1], _originalCameraCoordsData[2]);
+        DirectX::XMFLOAT3 up(_originalUpVectorData[0], _originalUpVectorData[1], _originalUpVectorData[2]);
+        DirectX::XMFLOAT3 target(_originalCameraTargetCoordsData[0], _originalCameraTargetCoordsData[1], _originalCameraTargetCoordsData[2]);
+        
+        camera.initFromGame(loc, up, target);
+        camera.translate(XMFLOAT3(20, 0, -20));
+    }
 }

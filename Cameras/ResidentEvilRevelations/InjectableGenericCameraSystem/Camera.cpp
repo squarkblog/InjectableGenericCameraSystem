@@ -26,6 +26,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
+#include <cmath>
 #include "Camera.h"
 #include "Defaults.h"
 #include "GameConstants.h"
@@ -75,6 +76,41 @@ namespace IGCS
 		setYaw(INITIAL_YAW_RADIANS);
 	}
 
+    void Camera::initFromGame(const XMFLOAT3 cameraCoords, const XMFLOAT3 upVector, const XMFLOAT3 cameraTargetCoords)
+    {
+        // init angles
+        XMVECTORF32 temp = {
+            cameraTargetCoords.x - cameraCoords.x,
+            cameraTargetCoords.y - cameraCoords.y,
+            cameraTargetCoords.z - cameraCoords.z
+        };
+        XMVECTOR directionVector = temp;
+        directionVector = XMVector3Normalize(temp);
+
+        temp = { upVector.x, upVector.y, upVector.z };
+        XMVECTOR cameraUp = temp;
+
+        temp = { 0, 1, 0 };
+        XMVECTOR yAxis = temp;
+
+        XMVECTOR right = XMVector3Cross(directionVector, cameraUp);
+        XMVECTOR trueUp = XMVector3Cross(right, directionVector);
+        XMVECTOR yDirPlane = XMVector3Cross(directionVector, yAxis);    // normal vector to the direction/y-axis plane
+
+        XMFLOAT3 normalizedDirection;
+        XMStoreFloat3(&normalizedDirection, XMVector3Normalize(directionVector));
+
+        XMFLOAT3 normalizedUp;
+        XMStoreFloat3(&normalizedUp, XMVector3Normalize(trueUp));
+
+        float sineTrueUp;
+        XMStoreFloat(&sineTrueUp, XMVector3Dot(trueUp, XMVector3Normalize(yDirPlane)));
+
+        _yaw = clampAngle(atan2(normalizedDirection.x, -normalizedDirection.z));
+        _pitch = clampAngle(asin(-normalizedDirection.y));
+        _roll = clampAngle(asin(sineTrueUp));
+
+    }
 
 	XMFLOAT3 Camera::calculateNewCoords(const XMFLOAT3 currentCoords, const XMVECTOR lookQ)
 	{
@@ -93,6 +129,15 @@ namespace IGCS
 		return toReturn;
 	}
 
+    void Camera::translate(const XMFLOAT3 offset)
+    {
+        // set movement directions for the next update
+        _direction.x = offset.x;
+        _direction.y = offset.y;
+        _direction.z = offset.z;
+
+        _movementOccurred = true;
+    }
 
 	void Camera::moveForward(float amount)
 	{

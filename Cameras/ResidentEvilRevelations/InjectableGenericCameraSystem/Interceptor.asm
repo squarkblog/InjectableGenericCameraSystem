@@ -48,6 +48,7 @@ PUBLIC _fovAddressInterceptor
 EXTERN _g_cameraStructAddress: dword
 EXTERN _g_fovStructAddress: dword
 EXTERN _g_runFramesStructAddress: dword
+EXTERN _g_timerStructAddress: dword
 EXTERN _g_cameraEnabled: byte
 ;---------------------------------------------------------------
 
@@ -58,6 +59,7 @@ EXTERN __cameraTargetInterceptionContinue: dword
 EXTERN __cameraUpVectorInterceptionContinue: dword
 EXTERN __fovAddressInterceptionContinue: dword
 EXTERN __runFramesAddressInterceptionContinue: dword
+EXTERN __gameTimerInterceptionContinue: dword
 
 ; Scratch pad
 ;
@@ -189,6 +191,51 @@ continue:
 exit:
 	jmp dword ptr [__fovAddressInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
 _fovAddressInterceptor ENDP
+
+_gameTimerInterceptor PROC
+;rerev.exe+5B614C - 0F28 CA               - movaps xmm1,xmm2                                  << INTERCEPT HERE
+;rerev.exe+5B614F - D8F1                  - fdiv st(0),st(1)
+;rerev.exe+5B6151 - F3 0F5E 4E 3C         - divss xmm1,[esi+3C]
+;rerev.exe+5B6156 - 0F28 C1               - movaps xmm0,xmm1
+;rerev.exe+5B6159 - F3 0F5E DA            - divss xmm3,xmm2
+;rerev.exe+5B615D - F3 0F11 4C 24 18      - movss [esp+18],xmm1
+;rerev.exe+5B6163 - D9 54 24 10           - fst dword ptr [esp+10]
+;rerev.exe+5B6167 - D9 5E 68              - fstp dword ptr [esi+68]
+;rerev.exe+5B616A - F3 0F5C 44 24 10      - subss xmm0,[esp+10]
+;rerev.exe+5B6170 - F3 0F59 C3            - mulss xmm0,xmm3                                    << END INTERCEPT
+;rerev.exe+5B6174 - 0F2F 05 B0D5FE00      - comiss xmm0,[rerev.exe+BED5B0]                       << CONTINUE HERE
+;...
+;rerev.exe+5B61BD - 0F2F 4E 68            - comiss xmm1,[esi+68]
+;rerev.exe+5B61C1 - 0F86 C0000000         - jbe rerev.exe+5B6287                <--- this jump causes it to skip the code below, but esi+38 can be obtained before here
+;rerev.exe+5B61C7 - DDD8                  - fstp st(0)
+;rerev.exe+5B61C9 - E8 22075900           - call rerev.exe+B468F0
+;rerev.exe+5B61CE - 89 86 E8C00100        - mov [esi+0001C0E8],eax                    writes new time value            
+;rerev.exe+5B61D4 - 2B 86 F0C00100        - sub eax,[esi+0001C0F0]
+;rerev.exe+5B61DA - 8B 8E E8C00100        - mov ecx,[esi+0001C0E8]
+;rerev.exe+5B61E0 - 89 86 F8C00100        - mov [esi+0001C0F8],eax                    writes time diff
+;rerev.exe+5B61E6 - 89 8E F0C00100        - mov [esi+0001C0F0],ecx                    writes old time val (memo for next diff)
+;rerev.exe+5B61EC - 89 96 ECC00100        - mov [esi+0001C0EC],edx
+;rerev.exe+5B61F2 - 89 96 F4C00100        - mov [esi+0001C0F4],edx                                                     
+;rerev.exe+5B61F8 - DF AE E8C00100        - fild qword ptr [esi+0001C0E8]                                              
+;rerev.exe+5B61FE - DC 8E 10C10100        - fmul qword ptr [esi+0001C110]      
+;...
+;rerev.exe+5B6240 - D8 4E 38              - fmul dword ptr [esi+38]               mul by fps <---- ACTUALLY interested in this 
+;                                                                                       stores gameplay fps (default 30) - acts as a time multiplier
+    mov [_g_timerStructAddress], esi        ; fps val at esi+38
+originalCode:
+    movaps xmm1,xmm2
+    fdiv st(0),st(1)
+    divss xmm1,dword ptr [esi+3Ch]
+    movaps xmm0,xmm1
+    divss xmm3,xmm2
+    movss dword ptr [esp+18h],xmm1
+    fst dword ptr [esp+10h]
+    fstp dword ptr [esi+68h]
+    subss xmm0,dword ptr[esp+10h]
+    mulss xmm0,xmm3
+exit:
+    jmp dword ptr [__gameTimerInterceptionContinue] ; jmp back into the original game code, which is the location after the original statements above.
+_gameTimerInterceptor ENDP
 
 ;TODO: leftover from Wolfenstein 2 -- see what's needed (not used ATM)
 ;runFramesAddressInterceptor PROC

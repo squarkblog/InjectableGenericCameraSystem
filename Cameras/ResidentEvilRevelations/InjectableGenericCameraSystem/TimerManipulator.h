@@ -28,44 +28,12 @@
 #pragma once
 #include "stdafx.h"
 
-using namespace DirectX;
-
-namespace IGCS
+namespace IGCS::GameSpecific::TimerManipulator
 {
-	class Camera
-	{
-	public:
-		Camera();
-		~Camera(void);
-
-		XMVECTOR calculateLookQuaternion();
-		XMFLOAT3 calculateNewCoords(const XMFLOAT3 currentCoords, const XMVECTOR lookQ);
-        void initFromGame(const XMFLOAT3 cameraCoords, const XMFLOAT3 upVector, const XMFLOAT3 cameraTargetCoords);
-		void resetMovement();
-		void resetAngles();
-        void translate(const XMFLOAT3 offset);
-		void moveForward(float amount);
-		void moveRight(float amount);
-		void moveUp(float amount);
-		void yaw(float amount);
-		void pitch(float amount);
-		void roll(float amount);
-		void setPitch(float angle);
-		void setYaw(float angle);
-		void setRoll(float angle);
-		float lookDirectionInverter() { return _lookDirectionInverter; }
-		void toggleLookDirectionInverter() { _lookDirectionInverter = -_lookDirectionInverter; }
-
-	private:
-		float clampAngle(float angle) const;
-
-		XMFLOAT3 _direction;
-		float _yaw;
-		float _pitch;
-		float _roll;
-		bool _movementOccurred;
-		float _movementSpeed;
-		float _rotationSpeed;
-		float _lookDirectionInverter;
-	};
+    bool TimerHooked();
+    void FreezeTime();
+    void SlowAdvance();
+    void SlowAdvanceToggle();
+    void RestoreNormalTimeFlow();
+    void PrintTimerStructAddress();
 }

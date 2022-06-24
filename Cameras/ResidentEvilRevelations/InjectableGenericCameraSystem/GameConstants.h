@@ -72,6 +72,11 @@ namespace IGCS::GameSpecific
     #define CAMERA_STRUCT_UP_X_OFFSET                   0x10
     #define CAMERA_STRUCT_TARGET_X_OFFSET               0x20
 
+    #define GAME_TIMER_INTERCEPT_KEY                    "AOB_GAME_TIMER_INTERCEPT_KEY"
+    #define GAME_TIMER_STRUCT_OFFSET                    0x1C0E8            // stores QueryPerformanceCounter output (qword LARGE_INTEGER)
+    #define GAME_TIMER_STRUCT_PREV_OFFSET               0x1C0F0            // same as above, but for the prev frame (used for diff)
+    #define GAME_TIMER_GAMEPLAY_FPS_OFFSET              0x38               // float
+
     // TODO: leftower from Wolfenstain - not yet sure how to do these in RE:Rev
     #define SHOWHUD_CVAR_ADDRESS_INTERCEPT_KEY          "AOB_SHOWHUD_ADDRESS_INTERCEPT"
     #define STOPTIME_CVAR_ADDRESS_INTERCEPT_KEY         "AOB_STOPTIME_CVAR_ADDRESS_INTERCEPT_KEY"

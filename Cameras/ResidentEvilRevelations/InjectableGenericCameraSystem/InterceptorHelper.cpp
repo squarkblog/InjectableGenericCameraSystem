@@ -34,6 +34,7 @@
 #include "AOBBlock.h"
 #include "Console.h"
 #include "CameraManipulator.h"
+#include "TimerManipulator.h"
 
 using namespace std;
 
@@ -44,6 +45,7 @@ extern "C" {
     void cameraTargetInterceptor();
     void cameraUpVectorInterceptor();
 	void fovAddressInterceptor();
+    void gameTimerInterceptor();
 	//void runFramesAddressInterceptor();   // TODO
 }
 
@@ -54,6 +56,7 @@ extern "C" {
     LPBYTE _cameraUpVectorInterceptionContinue = nullptr;
 	LPBYTE _fovAddressInterceptionContinue = nullptr;
 	LPBYTE _runFramesAddressInterceptionContinue = nullptr;
+    LPBYTE _gameTimerInterceptionContinue = nullptr;
 }
 
 
@@ -65,6 +68,7 @@ namespace IGCS::GameSpecific::InterceptorHelper
 		aobBlocks[FOV_ADDRESS_INTERCEPT_KEY] = new AOBBlock(FOV_ADDRESS_INTERCEPT_KEY, "F3 0F 11 46 10 F3 0F 11 86 C4 00 00 00 D9 03 D9 18 D9 43 04 D9 58 04 D9 43 08 F3 0F 11 48 0C D9 58 08 8B 44 24 14", 1);
         aobBlocks[CAMERA_TARGET_ADDRESS_INTERCEPT_KEY] = new AOBBlock(CAMERA_TARGET_ADDRESS_INTERCEPT_KEY, "F3 0F 11 07 0F 57 C0 F3 0F 11 47 0C F3 0F 59 CE F3 0F 58 CC F3 0F 11 4F 04 F3 0F 59 D6 F3 0F 58 D5 F3 0F 11 57 08", 1);
         aobBlocks[CAMERA_UPVEC_ADDRESS_INTERCEPT_KEY] = new AOBBlock(CAMERA_UPVEC_ADDRESS_INTERCEPT_KEY, "84 C0 74 2E F3 0F 10 84 24 90 00 00 00 F3 0F 11 01 F3 0F 10 84 24 94 00 00 00 F3 0F 11 41 04 F3 0F 10 84 24 98 00 00 00 F3 0F 11 41 08 F3 0F 11 49 0C F3 0F 10 96 10 01 00 00 F3 0F 10 5E 10", 1);
+        aobBlocks[GAME_TIMER_INTERCEPT_KEY] = new AOBBlock(GAME_TIMER_INTERCEPT_KEY, "0F 28 CA D8 F1 F3 0F 5E 4E 3C 0F 28 C1 F3 0F 5E DA F3 0F 11 4C 24 18 D9 54 24 10 D9 5E 68 F3 0F 5C 44 24 10 F3 0F 59 C3", 1);
         // TODO:
 		//aobBlocks[SHOWHUD_CVAR_ADDRESS_INTERCEPT_KEY] = new AOBBlock(SHOWHUD_CVAR_ADDRESS_INTERCEPT_KEY, "48 8D 54 24 ?? 48 89 44 24 ?? 48 8B CB E8 ?? ?? ?? ?? 83 3D | ?? ?? ?? ?? 00", 1);
 		//aobBlocks[STOPTIME_CVAR_ADDRESS_INTERCEPT_KEY] = new AOBBlock(STOPTIME_CVAR_ADDRESS_INTERCEPT_KEY, "48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 48 8B D9 83 3D | ?? ?? ?? ?? 00 74", 1);
@@ -104,6 +108,16 @@ namespace IGCS::GameSpecific::InterceptorHelper
 
         const DWORD fovInterceptContinueOffset = 0x17;
 		GameImageHooker::setHook(aobBlocks[FOV_ADDRESS_INTERCEPT_KEY], fovInterceptContinueOffset, &_fovAddressInterceptionContinue, &fovAddressInterceptor);
+
+        const DWORD gameTimerInterceptContinueOffset = 0x28;
+        GameImageHooker::setHook(aobBlocks[GAME_TIMER_INTERCEPT_KEY], gameTimerInterceptContinueOffset, &_gameTimerInterceptionContinue, &gameTimerInterceptor);
+
+#ifdef  _DEBUG
+        Sleep(500);
+        IGCS::GameSpecific::TimerManipulator::PrintTimerStructAddress();
+#endif 
+
+
         // TODO:
 		// GameImageHooker::setHook(aobBlocks[RUNFRAMES_CVAR_ADDRESS_INTERCEPT_KEY], 0x17, &_runFramesAddressInterceptionContinue, &runFramesAddressInterceptor);
 		// CameraManipulator::setShowHudAddress(Utils::calculateAbsoluteAddress(aobBlocks[SHOWHUD_CVAR_ADDRESS_INTERCEPT_KEY], 5));		//NewColossus_x64vk.exe+F9C173 - 83 3D 669FFF01 00  - cmp dword ptr [NewColossus_x64vk.exe+2F960E0],00 << g_showhud read here.

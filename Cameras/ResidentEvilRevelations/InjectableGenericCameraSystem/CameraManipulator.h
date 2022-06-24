@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "stdafx.h"
+#include "Camera.h"
 
 using namespace DirectX;
 
@@ -44,4 +45,5 @@ namespace IGCS::GameSpecific::CameraManipulator
 	void setStopTimeValue(BYTE newValue);
 	void setShowHudValue(BYTE newValue);
 	void setRunFramesValue(BYTE newValue);
+    void initCamera(Camera& camera);
 }
