@@ -81,7 +81,8 @@ namespace IGCS
 	{
 		handleUserInput();
 		writeNewCameraValuesToCameraStructs();
-	}
+        _camera.resetMovement();
+    }
 	
 
 	void System::writeNewCameraValuesToCameraStructs()
@@ -174,7 +175,7 @@ namespace IGCS
 			toggleInputBlockState(!Globals::instance().inputBlocked());
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
-		_camera.resetMovement();
+		//_camera.resetMovement();
 		float multiplier = altPressed ? FASTER_MULTIPLIER : controlPressed ? SLOWER_MULTIPLIER : 1.0f;
 		if (Input::keyDown(IGCS_KEY_CAMERA_LOCK))
 		{

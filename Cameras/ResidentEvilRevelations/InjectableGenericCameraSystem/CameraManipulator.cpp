@@ -263,6 +263,7 @@ namespace IGCS::GameSpecific::CameraManipulator
         }
 
         camera.resetAngles();
+        camera.resetMovement();
 
         // Preserve in-game camera orientation, but offset a little to indicate that free cam is enabled
         DirectX::XMFLOAT3 loc(_originalCameraCoordsData[0], _originalCameraCoordsData[1], _originalCameraCoordsData[2]);
