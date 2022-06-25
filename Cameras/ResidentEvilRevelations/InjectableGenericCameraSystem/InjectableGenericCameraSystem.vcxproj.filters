@@ -17,6 +17,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Timekeeping">
+      <UniqueIdentifier>{2dfadae9-ad42-4efe-8416-c4d8aab9faa0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -70,6 +73,21 @@
     <ClInclude Include="TimerManipulator.h">
       <Filter>Game Specific</Filter>
     </ClInclude>
+    <ClInclude Include="Throttler.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Toggler.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Timekeeping</Filter>
+    </ClInclude>
+    <ClInclude Include="DefaultTimeProvider.h">
+      <Filter>Timekeeping</Filter>
+    </ClInclude>
+    <ClInclude Include="CycleLimitedTimeProvider.h">
+      <Filter>Timekeeping</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InterceptorHelper.cpp">
@@ -116,6 +134,21 @@
     </ClCompile>
     <ClCompile Include="TimerManipulator.cpp">
       <Filter>Game Specific</Filter>
+    </ClCompile>
+    <ClCompile Include="Throttler.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Toggler.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Timekeeping</Filter>
+    </ClCompile>
+    <ClCompile Include="DefaultTimeProvider.cpp">
+      <Filter>Timekeeping</Filter>
+    </ClCompile>
+    <ClCompile Include="CycleLimitedTimeProvider.cpp">
+      <Filter>Timekeeping</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
