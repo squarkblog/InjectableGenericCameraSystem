@@ -88,6 +88,12 @@
     <ClInclude Include="CycleLimitedTimeProvider.h">
       <Filter>Timekeeping</Filter>
     </ClInclude>
+    <ClInclude Include="Command.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="ToggleCommand.h">
+      <Filter>Input</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InterceptorHelper.cpp">
@@ -149,6 +155,12 @@
     </ClCompile>
     <ClCompile Include="CycleLimitedTimeProvider.cpp">
       <Filter>Timekeeping</Filter>
+    </ClCompile>
+    <ClCompile Include="Command.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="ToggleCommand.cpp">
+      <Filter>Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

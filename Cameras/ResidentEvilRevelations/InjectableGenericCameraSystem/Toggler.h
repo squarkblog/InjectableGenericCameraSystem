@@ -36,36 +36,24 @@ namespace IGCS::Utils
     {
     public:
         Toggler(
-            std::function<bool()> checkIfToggleRequested,
-            std::function<bool()> checkIfToggleAllowed,
             std::function<void()> toggleActionA, 
             std::function<void()> toggleActionB
         );
 
         Toggler(
-            std::function<bool()> checkIfToggleRequested,
-            std::function<bool()> checkIfToggleAllowed,
             std::vector<std::function<void()>> toggleActions
         );
 
         Toggler(
-            std::function<bool()> checkIfToggleRequested,
-            std::function<bool()> checkIfToggleAllowed,
             std::initializer_list<std::function<void()>> toggleActions
         );
 
-        // checks if a toggle was requested and re-evaluates if it's currently allowed, 
-        // and invokes the next toggle action if the checks pass
-        void invokeIfRequested();
+        Toggler(Toggler&&) = default;
 
-        void evaluateToggleConditions();        // explicitely re-evaluate toggle conditions
-        void attemptInvoke();                   // exolicitely attempt invoke
+        /// Invokes the next toggle action
+        void toggle();
 
     private:
-        bool _toggleAllowed = true;
-        std::function<bool()> _checkIfToggleRequested;
-        std::function<bool()> _checkIfToggleAllowed;
-
         std::vector<std::function<void()>> _toogleActions;
         int _nextToggleIndex = 0;
     };

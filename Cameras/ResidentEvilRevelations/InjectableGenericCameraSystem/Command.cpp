@@ -25,38 +25,11 @@
 // OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include "stdafx.h"
-#include <functional>
-#include "Toggler.h"
+#include "Command.h"
 
-namespace IGCS::Utils
+namespace IGCS::Input
 {
-    Toggler::Toggler(
-        std::function<void()> toggleActionA,
-        std::function<void()> toggleActionB
-    )
-    {
-        _toogleActions.push_back(toggleActionA);
-        _toogleActions.push_back(toggleActionB);
-    }
-
-    Toggler::Toggler(
-        std::vector<std::function<void()>> toggleActions
-    )
-        : _toogleActions(std::move(toggleActions))
-    {
-    }
-
-    Toggler::Toggler(
-        std::initializer_list<std::function<void()>> toggleActions
-    )
-        : _toogleActions(toggleActions)
-    {
-    }
-
-    void Toggler::toggle()
-    {
-        _toogleActions[_nextToggleIndex++]();
-        _nextToggleIndex = _nextToggleIndex >= _toogleActions.size() ? 0 : _nextToggleIndex;
-    }
+    
 }

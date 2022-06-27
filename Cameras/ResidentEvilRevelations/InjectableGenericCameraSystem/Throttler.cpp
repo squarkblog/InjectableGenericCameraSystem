@@ -27,22 +27,23 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include <functional>
+#include <algorithm>
 #include "Timer.h"
 #include "Throttler.h"
 
 namespace IGCS::Utils
 {
     Throttler::Throttler(
-        std::shared_ptr<IGCS::Timekeeping::ITimeProvider> pTimeProvider,
         std::function<void ()> actionCallback,
+        std::shared_ptr<IGCS::Timekeeping::ITimeProvider> pTimeProvider,
         double throttleTimeInMilliseconds
     )
         :_timer(pTimeProvider), _actionCallback(actionCallback), 
-        _throttleTime(throttleTimeInMilliseconds), _allowInvoke(true)
+        _throttleTime(std::max<double>(0, throttleTimeInMilliseconds)), _allowInvoke(true)
     {
     }
 
-    void Throttler::attemptInvoke()
+    bool Throttler::attemptInvoke()
     {
         if (_timer.getTimeInMilliseconds() >= _throttleTime) 
         {
@@ -54,6 +55,14 @@ namespace IGCS::Utils
             _allowInvoke = false;
             _actionCallback();
             _timer.restart();
+            return true;
         }
+
+        return false;
+    }
+
+    void Throttler::invokeUnconditionally() const
+    {
+        _actionCallback();
     }
 }

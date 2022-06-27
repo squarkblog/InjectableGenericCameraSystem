@@ -36,11 +36,22 @@ namespace IGCS::Utils
     {
     public:
         Throttler(
-            std::shared_ptr<IGCS::Timekeeping::ITimeProvider> pTimeProvider,
             std::function<void()> actionCallback,
+            std::shared_ptr<IGCS::Timekeeping::ITimeProvider> pTimeProvider,
             double throttleTimeInMilliseconds
         );
-        void attemptInvoke();
+
+        Throttler(Throttler&&) = default;
+
+        /**
+         * Invokes the underlying action if the throttle timeout has passed
+         * @return Returns 'true' if the action callback was invoked
+         */
+        bool attemptInvoke();
+
+        /// Invokes the underlying action unconditionally. Does not reset the throttle timer.
+        void invokeUnconditionally() const;
+
     private:
         IGCS::Timekeeping::Timer _timer;
         std::function<void()> _actionCallback;

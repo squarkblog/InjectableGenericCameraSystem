@@ -163,6 +163,7 @@
   <ItemGroup>
     <ClInclude Include="AOBBlock.h" />
     <ClInclude Include="CameraManipulator.h" />
+    <ClInclude Include="Command.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="CycleLimitedTimeProvider.h" />
     <ClInclude Include="Defaults.h" />
@@ -181,12 +182,14 @@
     <ClInclude Include="Throttler.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="TimerManipulator.h" />
+    <ClInclude Include="ToggleCommand.h" />
     <ClInclude Include="Toggler.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AOBBlock.cpp" />
     <ClCompile Include="CameraManipulator.cpp" />
+    <ClCompile Include="Command.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CycleLimitedTimeProvider.cpp" />
     <ClCompile Include="DefaultTimeProvider.cpp" />
@@ -221,6 +224,7 @@
     <ClCompile Include="Throttler.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="TimerManipulator.cpp" />
+    <ClCompile Include="ToggleCommand.cpp" />
     <ClCompile Include="Toggler.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
