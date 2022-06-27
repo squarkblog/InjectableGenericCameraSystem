@@ -58,7 +58,7 @@ namespace IGCS::Input
         /// Invokes the underlying action if preconditions are met. @return Returns 'true' if the action was invoked
         bool attemptInvoke() { return checkPreconditions() ? onInvoke() : false; }
 
-        /// Invokes the next toggle action unconditionally
+        /// Invokes the underlying action unconditionally
         void invokeUnconditionally() { onInvoke(true); };
 
     protected:
@@ -66,7 +66,7 @@ namespace IGCS::Input
          * To be implemented by derivatives. Should return a bool indicating if the action was invoked.
          * @param calledInUnconditionalContext - allows the implementation to determine the context in which the method was called 
          * (e.g. attemptInvoke() vs invokeUnconditionally()). This lets it make additional decisions based on that context,
-         * e.g. ignore throttling timeout. 
+         * e.g. it can choose to ignore the input throttling timeout (if any). 
          */
         virtual bool onInvoke(bool calledInUnconditionalContext = false) = 0;
     };

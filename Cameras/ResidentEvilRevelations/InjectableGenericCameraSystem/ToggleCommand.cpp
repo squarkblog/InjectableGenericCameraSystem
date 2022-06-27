@@ -40,8 +40,9 @@ namespace IGCS::Input
 
 #pragma region Helper funcs forward declarations
 
-    std::shared_ptr<IGCS::Utils::Throttler> createThrottledToggler(std::function<bool()> isInvokeRequestedCallback,
+    std::shared_ptr<IGCS::Utils::Throttler> createThrottledToggler(
         std::initializer_list<std::function<void()> > actions,
+        std::function<bool()> isInvokeRequestedCallback,
         std::function<bool()> preconditionsCallback,
         std::shared_ptr<IGCS::Timekeeping::ITimeProvider>& timeProvider,
         double throttleDelayInMilliseconds);
@@ -79,7 +80,7 @@ namespace IGCS::Input
         double throttleDelayInMilliseconds
     )
         : _checkPreconditions(checkPreconditions), _checkIfInvokeRequested(checkIfInvokeRequested),
-        _invokeWrappedAction(createAction(createThrottledToggler(checkIfInvokeRequested, actions, checkPreconditions, timeProvider, throttleDelayInMilliseconds)))
+        _invokeWrappedAction(createAction(createThrottledToggler(actions, checkIfInvokeRequested, checkPreconditions, timeProvider, throttleDelayInMilliseconds)))
     {
 
     }
@@ -102,8 +103,8 @@ namespace IGCS::Input
     //// Helpers //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     std::shared_ptr<IGCS::Utils::Throttler> createThrottledToggler(
-        std::function<bool()> checkIfInvokeRequested,
         std::initializer_list<std::function<void()> > actions,
+        std::function<bool()> checkIfInvokeRequested,
         std::function<bool()> checkPreconditions,
         std::shared_ptr<IGCS::Timekeeping::ITimeProvider>& timeProvider,
         double throttleDelayInMilliseconds
